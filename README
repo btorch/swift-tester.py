@@ -1,0 +1,24 @@
+
+
+
+Just a sample output until I create a proper readme filr
+
+
+box:~/$ ./swift-tester.py  -r us -i 1 -u USER -k APIKEY
+
+23:08:23  INFO QAtester  ***** Starting Iteration # 1 ***** 
+23:08:23  INFO QAtester  Containers: 22, Usage: 5517846585 bytes , Retrieval Time: 0.2196 
+23:08:23  INFO QAtester  Listing all containers : 0.0615 
+23:08:23  INFO QAtester  Listing all container's info : 0.0699 
+23:08:24  INFO QAtester  Created 1 container(s) in : 0.2809 secs
+23:08:24  INFO QAtester  All 3 test file(s) already locally available 
+
+23:08:43  INFO QAtester  Uploaded 3 file(s) in 1 container(s) in : 19.2405 secs 
+23:08:43  INFO QAtester  Set basket_one public in 0.2432 secs 
+23:08:45  INFO QAtester          CDN url fetched in 0.2191 secs ( http://c0184120.cdn1.cloudfiles.rackspacecloud.com/24kb.jpg )
+23:08:48  INFO QAtester          CDN url fetched in 2.5574 secs ( http://c0184120.cdn1.cloudfiles.rackspacecloud.com/5mb.dmg )
+23:08:51  INFO QAtester          CDN url fetched in 2.9748 secs ( http://c0184120.cdn1.cloudfiles.rackspacecloud.com/14mb.dmg )
+23:08:51  INFO QAtester  CDN TTL changed to 7200 in 0.1712 secs
+23:08:51  INFO QAtester  CDN privitized in 0.172926187515 secs
+23:08:52  INFO QAtester  Deleted 1 container(s) in : 0.3735 secs
+
