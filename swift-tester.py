@@ -201,22 +201,22 @@ def create_test_files(logger, tmp_folder):
     #print (" current_path :  %s" % current_path ) 
     if not os.path.exists(tmp_folder):
         os.mkdir(tmp_folder)
-    else:
-        for url in urls:
-            ofile = tmp_folder + '/' + os.path.basename(url)
-            if os.path.isfile(ofile) and os.path.exists(ofile):
+    
+    for url in urls:
+        ofile = tmp_folder + '/' + os.path.basename(url)
+        if os.path.isfile(ofile) and os.path.exists(ofile):
+            fullpath_files.append(ofile)
+            download = False 
+        else:
+            try:
+                urlsh = urllib2.urlopen(url)
+                output = open(ofile,'wb')
+                output.write(urlsh.read())
+                output.close()
                 fullpath_files.append(ofile)
-                download = False 
-            else:
-                try:
-                    urlsh = urllib2.urlopen(url)
-                    output = open(ofile,'wb')
-                    output.write(urlsh.read())
-                    output.close()
-                    fullpath_files.append(ofile)
-                    download = True
-                except:
-                    raise Exception ("Error: %s  --  %s" % (sys.exc_type, sys.exc_value) )
+                download = True
+            except:
+                raise Exception ("Error: %s  --  %s" % (sys.exc_type, sys.exc_value) )
     
     if download:
         logger(" Downloaded %s test file(s) successfuly " % len(urls) )
