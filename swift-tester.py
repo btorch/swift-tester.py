@@ -8,7 +8,7 @@
 #
 
 
-import os, sys, time, tempfile, cloudfiles, logging, urllib2, mimetypes
+import os, sys, time, tempfile, cloudfiles, logging, urllib2, mimetypes, socket
 from optparse import OptionParser
 from xmlrpclib import ServerProxy, Fault
 from time import sleep
@@ -41,38 +41,39 @@ def create_connection(url,user,apikey,logger):
             start_time = time.time()
             conn = cloudfiles.get_connection(username=user, api_key=apikey, authurl=url)
             duration = time.time() - start_time
+            return conn
         except cloudfiles.errors.AuthenticationFailed: 
             count = 4
             duration = time.time() - start_time
-            print ( " --> %s , %s " % (sys.exc_type, sys.exc_value) )
-            msg = "Failed Authentication  ( %.4f secs)" % duration
-            raise Exception( WARNING + msg + ENDC )
+            msg = " Failed Authentication  ( %.4f secs)" % duration
+            logger( WARNING + msg + ENDC )
+            sys.exit(1)
         except cloudfiles.errors.AuthenticationError: 
             count = 4
             duration = time.time() - start_time
-            print ( " --> %s , %s " % (sys.exc_type, sys.exc_value) )
-            msg = "Authentication Error ( %.4f secs)" % duration
-            raise Exception( WARNING + msg + ENDC )
+            msg = " Authentication Error ( %.4f secs)" % duration
+            logger( WARNING + msg + ENDC )
+            sys.exit(1)
         except socket.sslerror:
             count = count + 1
             duration = time.time() - start_time
-            print ( " --> %s , %s " % (sys.exc_type, sys.exc_value) )
-            msg = "Authentication Timed out ... retrying in 5secs ( %.4f secs)" % duration
-            print WARNING + msg + ENDC 
+            msg = " Authentication Timed out ... retrying in 5secs ( %.4f secs)" % duration
+            logger( WARNING + msg + ENDC )
             time.sleep(3)
+            continue 
         except:     
             count = 4
             duration = time.time() - start_time
-            print ( " --> %s , %s " % (sys.exc_type, sys.exc_value) )
-            msg = "Authentication Issues ( %.4f secs)" % duration
+            msg = " Authentication Issues %s ( %.4f secs)" % (sys.exc_type,duration)
             raise Exception( WARNING + msg + ENDC )
+            #logger( WARNING + msg + ENDC )
+            sys.exit(1)
 
     if count > 0 and count <= 3:
         logger( " Authentication time : %.4f secs, retries : %s " % (duration,count) )
     else:
         logger( " Authentication time : %.4f secs " % duration )
 
-    return conn
 
 
 
