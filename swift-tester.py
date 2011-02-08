@@ -8,10 +8,10 @@
 #
 
 
-import warnings
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore",category=DeprecationWarning)
-    import md5
+#import warnings
+#with warnings.catch_warnings():
+#    warnings.filterwarnings("ignore",category=DeprecationWarning)
+import md5
 
 import os, sys, time, urllib, tempfile, cloudfiles, logging, urllib2, mimetypes
 from optparse import OptionParser
@@ -45,17 +45,44 @@ def md5_from_filename(fname):
 
 def create_connection(url,user,apikey,logger): 
 
-    try:
-        start_time = time.time()
-        conn = cloudfiles.get_connection(username=user, api_key=apikey, authurl=url)
-        duration = time.time() - start_time
-    except cloudfiles.errors.AuthenticationFailed: 
-        duration = time.time() - start_time
-        print ( " --> %s , %s " % (sys.exc_type, sys.exc_value) )
-        msg = "Failed Authentication  ( %.4f secs)" % duration
-        raise Exception( WARNING + msg + ENDC )
-    
-    logger( " Authentication time : %.4f secs" % duration )
+    count = 0
+    #while ( retry > 0) and (retry < 4) :
+    while count < 3:
+        try:
+            count = 4
+            start_time = time.time()
+            conn = cloudfiles.get_connection(username=user, api_key=apikey, authurl=url)
+            duration = time.time() - start_time
+        except cloudfiles.errors.AuthenticationFailed: 
+            count = 4
+            duration = time.time() - start_time
+            print ( " --> %s , %s " % (sys.exc_type, sys.exc_value) )
+            msg = "Failed Authentication  ( %.4f secs)" % duration
+            raise Exception( WARNING + msg + ENDC )
+        except cloudfiles.errors.AuthenticationError: 
+            count = 4
+            duration = time.time() - start_time
+            print ( " --> %s , %s " % (sys.exc_type, sys.exc_value) )
+            msg = "Authentication Error ( %.4f secs)" % duration
+            raise Exception( WARNING + msg + ENDC )
+        except socket.sslerror:
+            count = count + 1
+            duration = time.time() - start_time
+            print ( " --> %s , %s " % (sys.exc_type, sys.exc_value) )
+            msg = "Authentication Timed out ... retrying in 5secs ( %.4f secs)" % duration
+            print WARNING + msg + ENDC 
+            time.sleep(3)
+        except:     
+            count = 4
+            duration = time.time() - start_time
+            print ( " --> %s , %s " % (sys.exc_type, sys.exc_value) )
+            msg = "Authentication Issues ( %.4f secs)" % duration
+            raise Exception( WARNING + msg + ENDC )
+
+    if count > 0 and count <= 3:
+        logger( " Authentication time : %.4f secs, retries : %s " % (duration,count) )
+    else:
+        logger( " Authentication time : %.4f secs " % duration )
 
     return conn
 
@@ -165,12 +192,10 @@ def cleanup_containers(conn, logger, new_containers):
 def create_test_files(logger, tmp_folder):
 
     fullpath_files = []
+    download = True
     current_path = os.path.abspath(sys.path[0]) + "/" 
     tmp_folder = current_path + '/objects' 
 
-    #print (" current_path :  %s" % current_path ) 
-    if not os.path.exists(tmp_folder):
-        os.mkdir(tmp_folder)
 
     # http://c0181665.cdn1.cloudfiles.rackspacecloud.com/24kb.jpg
     # http://c0181665.cdn1.cloudfiles.rackspacecloud.com/5mb.dmg
@@ -180,23 +205,35 @@ def create_test_files(logger, tmp_folder):
     # http://c0181665.cdn1.cloudfiles.rackspacecloud.com/100mb.iso
 
     urls = ['http://c0181665.cdn1.cloudfiles.rackspacecloud.com/24kb.jpg',
-            'http://c0181665.cdn1.cloudfiles.rackspacecloud.com/5mb.dmg']
-##            'http://c0181665.cdn1.cloudfiles.rackspacecloud.com/14mb.dmg',
+            'http://c0181665.cdn1.cloudfiles.rackspacecloud.com/5mb.dmg',
+            'http://c0181665.cdn1.cloudfiles.rackspacecloud.com/14mb.dmg']
 ##            'http://c0181665.cdn1.cloudfiles.rackspacecloud.com/28mb.iso']
 
-    for url in urls:
-
-        try:
-            urlsh = urllib2.urlopen(url)
+    #print (" current_path :  %s" % current_path ) 
+    if not os.path.exists(tmp_folder):
+        os.mkdir(tmp_folder)
+    else:
+        for url in urls:
             ofile = tmp_folder + '/' + os.path.basename(url)
-            fullpath_files.append(ofile)
-            output = open(ofile,'wb')
-            output.write(urlsh.read())
-            output.close()
-        except:
-            raise Exception ("Error: %s  --  %s" % (sys.exc_type, sys.exc_value) )
+            if os.path.isfile(ofile) and os.path.exists(ofile):
+                fullpath_files.append(ofile)
+                download = False 
+            else:
+                try:
+                    urlsh = urllib2.urlopen(url)
+                    output = open(ofile,'wb')
+                    output.write(urlsh.read())
+                    output.close()
+                    fullpath_files.append(ofile)
+                    download = True
+                except:
+                    raise Exception ("Error: %s  --  %s" % (sys.exc_type, sys.exc_value) )
+    
+    if download:
+        logger(" Downloaded %s test file(s) successfuly " % len(urls) )
+    else:
+        logger(" All %s test file(s) already locally available " % len(urls) )
 
-    logger(" Created %s temporary file(s) successfuly " % len(urls) )
 
     return fullpath_files
 
@@ -259,28 +296,31 @@ def main():
 
     # configure command line options
     parser.add_option("-h", "--help", action="help")
-    parser.add_option("-r", "--region", action="store", type="string", dest="region", help="\t\t Defines proper Auth URL (us or uk)")
-    parser.add_option("-l", "--log-level", action="store", type="int", dest="loglevel", default=1, help="\t\t Log Level: 1=info (default), 2=error, 3=debug")
-    parser.add_option("-i", "--iterations", action="store", type="int", dest="iterations", help="\t\t Number of test iterations to run")
-    parser.add_option("-u", "--user", action="store", type="string", dest="user", help="\t\t CloudFiles account username")
-    parser.add_option("-k", "--key", action="store", type="string", dest="apikey", help="\t\t CloudFiles account api key")
+    parser.add_option("-r", "--region", action="store", type="string", dest="region", help="\t Defines proper Auth URL (us or uk)")
+    parser.add_option("-l", "--log-level", action="store", type="int", dest="loglevel", default=1, help="\t Log Level: 1=info (default), 2=error, 3=debug")
+    parser.add_option("-i", "--iterations", action="store", type="int", dest="iterations", help="\t Number of test iterations to run")
+    parser.add_option("-u", "--user", action="store", type="string", dest="user", help="\t CloudFiles account username")
+    parser.add_option("-k", "--key", action="store", type="string", dest="apikey", help="\t CloudFiles account api key")
 
     # parse command line options
     (options, args) = parser.parse_args()
-    #print options
-    #print args
+
+    if len(sys.argv) <= 1 :
+        parser.print_help()
+        sys.exit()
+
 
     if options.iterations <= 0 :
-        print "\n\t " + WARNING + "Error:" + ENDC + " Iterations must be greater or equal to 1 \n"
-        return 1
-        sys.exit()
+        options.iterations = 1
+        #print "\n\t " + WARNING + "Error:" + ENDC + " Iterations must be greater or equal to 1 \n"
+        #return 1
+        #sys.exit()
+
 
     # Picking auth url according to region chosen
     if options.region.lower() == 'us':
-        #print "USA region"
         authurl="https://api.mosso.com/auth"
     elif options.region.lower() == 'uk':
-        #print "GB region"
         authurl="https://lon.auth.api.rackspacecloud.com/auth"
     else:
         print "\n\t " + WARNING + "Error:" + ENDC + " Region MUST be either US or UK"
@@ -301,8 +341,6 @@ def main():
     else:
         # logging.INFO
         loglevel=20
-        #print "\n\t " + WARNING + "Error:" + ENDC + " Please choose a proper log level"
-        #sys.exit(1)
 
     # The --user and --apikey options are required 
     if options.user is None :
