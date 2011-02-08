@@ -8,16 +8,10 @@
 #
 
 
-#import warnings
-#with warnings.catch_warnings():
-#    warnings.filterwarnings("ignore",category=DeprecationWarning)
-import md5
-
-import os, sys, time, urllib, tempfile, cloudfiles, logging, urllib2, mimetypes
+import os, sys, time, tempfile, cloudfiles, logging, urllib2, mimetypes
 from optparse import OptionParser
 from xmlrpclib import ServerProxy, Fault
 from time import sleep
-#from urllib2 import urlopen, Request
 
 
 # colors
@@ -29,18 +23,12 @@ ENDC = '\033[0m'
 
 
 
-
 def setup_logging(loglevel):
     logging.basicConfig(format='%(asctime)s %(levelname)5s %(name)7s %(message)s', datefmt='%H:%M:%S', level=loglevel)
     my_logger = logging.getLogger('QAtester')
     return my_logger
 
 
-def md5_from_filename(fname):
-    f = open(fname, "rb")
-    contents = f.read()
-    f.close()
-    return md5.new(contents).hexdigest()
 
 
 def create_connection(url,user,apikey,logger): 
@@ -312,9 +300,6 @@ def main():
 
     if options.iterations <= 0 :
         options.iterations = 1
-        #print "\n\t " + WARNING + "Error:" + ENDC + " Iterations must be greater or equal to 1 \n"
-        #return 1
-        #sys.exit()
 
 
     # Picking auth url according to region chosen
