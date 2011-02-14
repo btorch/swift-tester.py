@@ -25,7 +25,12 @@ ENDC = '\033[0m'
 
 def setup_logging(loglevel):
     logging.basicConfig(format='%(asctime)s %(levelname)5s %(name)7s %(message)s', datefmt='%H:%M:%S', level=loglevel)
-    my_logger = logging.getLogger('QAtester')
+    my_logger = logging.getLogger('functester')
+
+    fh = logging.FileHandler("swift-tester.log")
+    fh.setLevel(loglevel)
+    my_logger.addHandler(fh)
+
     return my_logger
 
 
@@ -194,8 +199,8 @@ def create_test_files(logger, tmp_folder):
     # http://c0181665.cdn1.cloudfiles.rackspacecloud.com/100mb.iso
 
     urls = ['http://c0181665.cdn1.cloudfiles.rackspacecloud.com/24kb.jpg',
-            'http://c0181665.cdn1.cloudfiles.rackspacecloud.com/5mb.dmg',
-            'http://c0181665.cdn1.cloudfiles.rackspacecloud.com/14mb.dmg']
+            'http://c0181665.cdn1.cloudfiles.rackspacecloud.com/5mb.dmg']
+##            'http://c0181665.cdn1.cloudfiles.rackspacecloud.com/14mb.dmg']
 ##            'http://c0181665.cdn1.cloudfiles.rackspacecloud.com/28mb.iso']
 
     #print (" current_path :  %s" % current_path ) 
@@ -353,9 +358,15 @@ def main():
     
     # Start iterations
     runs = 1
+
+    localtime = time.asctime( time.localtime(time.time()) )
+
+    print("\n")
+    my_logger(" ***** Began on: %s ***** " % localtime)
+    my_logger("")
+
     while (runs <= options.iterations):
 
-        print ("")
         my_logger(" ***** Starting Iteration # %d ***** " % runs )
 
         conn = create_connection (authurl, options.user, options.apikey, my_logger)
@@ -371,6 +382,7 @@ def main():
         cleanup_containers (conn,my_logger, containers_list)
     
         runs = runs + 1
+        print ("\n")
 
     print ("\n")
     return 0
