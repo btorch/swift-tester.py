@@ -1,15 +1,17 @@
 #! /usr/bin/env python
 
 # Author: Marcelo Martins
-# Date: 01-20-2011
+# Date: 2011-01-20
+# Last Update: 2011-06-11 
 #
 # Info: Just a simple QA test on the CLI for CF testing
 #
 #
 
 
-import os, sys, time, tempfile, cloudfiles, logging, urllib2, mimetypes, socket
+import os, sys, time, tempfile, cloudfiles, logging, urllib2, mimetypes, socket, hashlib
 from optparse import OptionParser
+from urlparse import urlparse, urlunparse
 from xmlrpclib import ServerProxy, Fault
 from time import sleep
 
@@ -40,7 +42,7 @@ def create_connection(url,user,apikey,logger):
 
     count = 0
     #while ( retry > 0) and (retry < 4) :
-    while count < 3:
+    while count < 10:
         try:
             count = 4
             start_time = time.time()
@@ -199,8 +201,8 @@ def create_test_files(logger, tmp_folder):
     # http://c0181665.cdn1.cloudfiles.rackspacecloud.com/100mb.iso
 
     urls = ['http://c0181665.cdn1.cloudfiles.rackspacecloud.com/24kb.jpg',
-            'http://c0181665.cdn1.cloudfiles.rackspacecloud.com/5mb.dmg']
-##            'http://c0181665.cdn1.cloudfiles.rackspacecloud.com/14mb.dmg']
+            'http://c0181665.cdn1.cloudfiles.rackspacecloud.com/5mb.dmg',
+            'http://c0181665.cdn1.cloudfiles.rackspacecloud.com/14mb.dmg']
 ##            'http://c0181665.cdn1.cloudfiles.rackspacecloud.com/28mb.iso']
 
     #print (" current_path :  %s" % current_path ) 
@@ -281,6 +283,21 @@ def  cdn_operations(conn, logger, new_containers, tmp_files):
     logger(" CDN privitized in %s secs" % duration )
 
 
+# Check the Openstack Swift URL 
+# Right now really just checks the protocol 
+def check_os_swift_authurl(authurl):
+
+    url_components = urlparse(authurl)
+    if url_components.scheme == 'http':
+        return 0
+
+    elif url_components.scheme == 'https':
+        return 0
+    else:
+        print "\n\t WARNING: The Auth URL protocol provided seems invalid "
+        print "\t\t  Please use http or https \n"
+        return 1
+
 
 def main():
 
@@ -290,9 +307,10 @@ def main():
 
     # configure command line options
     parser.add_option("-h", "--help", action="help")
-    parser.add_option("-r", "--region", action="store", type="string", dest="region", help="\t Defines proper Auth URL (us or uk)")
+    parser.add_option("-r", "--region", action="store", type="string", dest="region", help="\t Defines proper CloudFiles Auth URL (us or uk)")
     parser.add_option("-l", "--log-level", action="store", type="int", dest="loglevel", default=1, help="\t Log Level: 1=info (default), 2=error, 3=debug")
     parser.add_option("-i", "--iterations", action="store", type="int", dest="iterations", help="\t Number of test iterations to run")
+    parser.add_option("-a", "--authurl", action="store", type="string", dest="authurl", help="\t Auth URL for Openstack-Swift")
     parser.add_option("-u", "--user", action="store", type="string", dest="user", help="\t CloudFiles account username")
     parser.add_option("-k", "--key", action="store", type="string", dest="apikey", help="\t CloudFiles account api key")
 
@@ -303,20 +321,51 @@ def main():
         parser.print_help()
         sys.exit()
 
-
     if options.iterations <= 0 :
         options.iterations = 1
 
+    # Check that user/pass have been provided
+    if None in (options.user, options.apikey):
+        print "\n\t WARNING: username & password MUST be provided "
+        print "\t Run swift-tester.py --help for more details \n"
+        sys.exit(1)
 
-    # Picking auth url according to region chosen
-    if options.region.lower() == 'us':
-        authurl="https://api.mosso.com/auth"
-    elif options.region.lower() == 'uk':
-        authurl="https://lon.auth.api.rackspacecloud.com/auth"
+    # Check that either -r or -a is provided
+    if options.authurl is None and options.region is None:
+        print "\n\t WARNING: -r or -a flag MUST be provided "
+        print "\t Run swift-tester.py --help for more details \n"
+        sys.exit(1)
+
+   
+    if options.authurl == None: 
+        # If the above is true then "-r" option needs to be used
+        # Picking auth url according to region chosen
+        if options.region != None:
+            if options.region.lower() == 'us':
+                authurl="https://auth.api.rackspacecloud.com/auth"
+            elif options.region.lower() == 'uk':
+                authurl="https://lon.auth.api.rackspacecloud.com/auth"
+            else:
+                print "\n\t " + WARNING + "Error:" + ENDC + " Region MUST be either US or UK"
+                print "\n\t Run swift-tester.py --help for more details \n"
+                sys.exit(1)
+#        else:
+#            print "\n\t WARNING: -r or -a flag MUST be provided .. Not both \n"
+#            print "\n\t Run swift-tester.py --help for more details \n"
+#            return 1
+#            sys.exit()
+
     else:
-        print "\n\t " + WARNING + "Error:" + ENDC + " Region MUST be either US or UK"
-        return 1 
-        sys.exit()
+        if options.region != None:
+            print "\n\t WARNING: you cannot specify -r and -a at the same time "
+            print "\t Run swift-tester.py --help for more details \n"
+            sys.exit(1)
+        else:
+            authurl = options.authurl.lower() 
+            status = check_os_swift_authurl(authurl)
+            if status == 1:
+                sys.exit(status)
+
 
     
     # Setting up the log level
@@ -352,8 +401,11 @@ def main():
         my_logger = app_logger.debug
 
 
-    # containers to use
-    containers = ['basket_one']
+    # Setup a random string container to use
+    # for now uses only one container 
+    container =  "basket_"+hashlib.md5(os.urandom(2048)).hexdigest() 
+    containers = []
+    containers.append(container)
 
     
     # Start iterations
@@ -378,7 +430,11 @@ def main():
         tmp_files = create_test_files(my_logger, tmp_folder) 
 
         object_operations(conn, my_logger, containers_list, tmp_files)
-        cdn_operations(conn, my_logger, containers_list, tmp_files)
+        
+        # Only run CDN tests if running against CloudFiles environment
+        if options.region != None:
+            cdn_operations(conn, my_logger, containers_list, tmp_files)
+
         cleanup_containers (conn,my_logger, containers_list)
     
         runs = runs + 1
