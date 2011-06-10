@@ -93,30 +93,30 @@ def container_operations (conn, logger, new_containers):
         start_time = time.time()
         account_info = conn.get_info()
         duration = time.time() - start_time
+        logger( " Containers: %s, Usage: %s bytes " % account_info + ", Retrieval Time: %.4f " % duration)
     except:
         raise Exception( 'Unable to get connection info ')
 
-    logger( " Containers: %s, Usage: %s bytes " % account_info + ", Retrieval Time: %.4f " % duration)
 
 
     try:
         start_time = time.time()
         containers_list = conn.list_containers()
         duration = time.time() - start_time
+        logger( " Listing all containers : %.4f " % duration )
     except:
         raise Exception( 'Unable to list just containers' )
 
-    logger( " Listing all containers : %.4f " % duration )
 
 
     try:
         start_time = time.time()
         all_containers_info = conn.list_containers_info()
         duration = time.time() - start_time
+        logger( " Listing all container\'s info : %.4f " % duration )
     except:
         raise Exception( 'Unable to get all conatiner\'s info'  )
 
-    logger( " Listing all container\'s info : %.4f " % duration )
 
 
 
@@ -126,12 +126,25 @@ def container_operations (conn, logger, new_containers):
             start_time = time.time()
             new_container_list.append( conn.create_container(name) )
             duration = time.time() - start_time
+            logger(" Created %d container(s) in : %.4f secs" % (len(new_containers), duration) ) 
         except: 
             duration = 0.0
             logger(" Container creation - Exception Occurred : %s, %s " % (sys.exc_type, sys.exc_value) )
             sys.exit(1)
 
-    logger(" Created %d container(s) in : %.4f secs" % (len(new_containers), duration) ) 
+#        try
+#            start_time = time.time()
+#            #logr = new_container_list[0].cdn_log_retention
+#            cdnttl = new_container_list[0].cdn_ttl
+#            duration = time.time() - start_time
+#            logger(" Retrieving %s container metadata in : %.4f secs" % (cdnttl,duration,) )
+#        except:
+#            duration = 0.0
+#            logger(" Retrieving Container metadata - Exception Occurred : %s, %s " % (sys.exc_type, sys.exc_value) )
+#            sys.exit(1)
+
+        
+
 
     return new_container_list
 
@@ -154,9 +167,18 @@ def object_operations(conn, logger, new_containers, tmp_files):
                 logger(" Object creation exception : %s, %s " % (sys.exc_type, sys.exc_value) )
                 sys.exit(1) 
 
-    duration = time.time() - start_time
-    logger(" Uploaded %s file(s) in %s container(s) in : %.4f secs " % (len(tmp_files), len(new_containers), duration) )
+        duration = time.time() - start_time
+        logger(" Uploaded %s file(s) in %s container(s) in : %.4f secs " % (len(tmp_files), len(new_containers), duration) )
 
+        try:
+            start_time = time.time()
+            conn[cont.name].list_objects_info()
+            duration = time.time() - start_time
+            logger(" Container All Objs Information in %.4f secs " % (duration,))
+        except:
+            duration = 0.0
+            logger(" Container All Objs Info - Exception Occurred : %s, %s " % (sys.exc_type, sys.exc_value) )
+            sys.exit(1)
     
     
 
@@ -237,10 +259,7 @@ def create_test_files(logger, tmp_folder):
 
 def  cdn_operations(conn, logger, new_containers, tmp_files):
 
-
     # Let's mark just one container public
-
-    
     start_time = time.time()    
     #if not new_containers[0].is_public():
     new_containers[0].make_public()
@@ -258,29 +277,49 @@ def  cdn_operations(conn, logger, new_containers, tmp_files):
             contents = urlsh.read() 
             urlsh.close()
             duration = time.time() - start_time
+            logger("\t CDN url fetched in %.4f secs ( %s )" % (duration,cdn_url) )
         except:
             logger(" CDN fetch exception : %s, %s " % (sys.exc_type, sys.exc_value) )
             sys.exit(1)
         
-        logger("\t CDN url fetched in %.4f secs ( %s )" % (duration,cdn_url) )
+        try:
+            start_time = time.time()
+            new_containers[0].log_retention(True)
+            logr = new_containers[0].cdn_log_retention
+            cdnttl = new_containers[0].cdn_ttl
+            new_containers[0].log_retention(False)
+            duration = time.time() - start_time
+            logger("\t CDN container (%s,%s) metadata in : %.4f secs" % (cdnttl,logr,duration,) )
+        except:
+            duration = 0.0
+            logger(" Retrieving Container metadata - Exception Occurred : %s, %s " % (sys.exc_type, sys.exc_value) )
+            sys.exit(1)
         
 
-    cdnttl = 7200
+    cdnttl = 3600
     if new_containers[0].is_public():
         start_time = time.time()
         new_containers[0].make_public(cdnttl)
         duration = time.time() - start_time    
-        
-    logger(" CDN TTL changed to %s in %.4f secs" % (cdnttl,duration) )
+        logger(" CDN TTL changed to %s in %.4f secs" % (cdnttl,duration) )
 
+
+    #if conn.list_public_containers():
+    try:
+        start_time = time.time()
+        contents = conn.list_public_containers()
+        duration = time.time() - start_time
+        logger(" CDN Public Container List in %.4f secs " % (duration,) )
+    except:
+        logger(" CDN Public Container List exception : %s, %s " % (sys.exc_type, sys.exc_value) )
+        sys.exit(1)
 
 
     if new_containers[0].is_public():
         start_time = time.time()
         new_containers[0].make_private()
         duration = time.time() - start_time
-
-    logger(" CDN privitized in %s secs" % duration )
+        logger(" CDN privitized in %s secs" % duration )
 
 
 # Check the Openstack Swift URL 
