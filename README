@@ -1,10 +1,30 @@
 
+Usage: swift-tester.py [options]
+
+Options:
+  -h, --help            
+  -r REGION, --region=REGION                Defines a proper CloudFiles Auth URL (us or uk) 
+                                            * This is for tests against Rackspace CloudFiles only 
+
+  -l LOGLEVEL, --log-level=LOGLEVEL         Log Level: 1=info (default), 2=error, 3=debug
+                                            * Not very useful at this time 
+
+  -i ITERATIONS, --iterations=ITERATIONS    Number of test iterations to run
+
+  -a AUTHURL, --authurl=AUTHURL             Auth URL for Openstack-Swift authentication 
+                                            * This cannot be used when -r is provided 
+
+  -u USER, --user=USER                      CloudFiles or OpenStack-swift  username
+
+  -k APIKEY, --key=APIKEY                   CloudFiles or OpenStack-swift  apikey/password
 
 
-Just a sample output until I create a proper readme filr
 
+================================
+SAMPLE FOR  RACKSPACE CLOUDFILES 
+================================
 
-box:~/$ ./swift-tester.py  -r us -i 1 -u USER -k APIKEY
+box:~/$ ./swift-tester.py  -r us -u USER -k APIKEY -i 1
 
 23:08:23  INFO QAtester  ***** Starting Iteration # 1 ***** 
 23:08:23  INFO QAtester  Containers: 22, Usage: 5517846585 bytes , Retrieval Time: 0.2196 
@@ -12,7 +32,6 @@ box:~/$ ./swift-tester.py  -r us -i 1 -u USER -k APIKEY
 23:08:23  INFO QAtester  Listing all container's info : 0.0699 
 23:08:24  INFO QAtester  Created 1 container(s) in : 0.2809 secs
 23:08:24  INFO QAtester  All 3 test file(s) already locally available 
-
 23:08:43  INFO QAtester  Uploaded 3 file(s) in 1 container(s) in : 19.2405 secs 
 23:08:43  INFO QAtester  Set basket_one public in 0.2432 secs 
 23:08:45  INFO QAtester          CDN url fetched in 0.2191 secs ( http://c0184120.cdn1.cloudfiles.rackspacecloud.com/24kb.jpg )
@@ -21,4 +40,26 @@ box:~/$ ./swift-tester.py  -r us -i 1 -u USER -k APIKEY
 23:08:51  INFO QAtester  CDN TTL changed to 7200 in 0.1712 secs
 23:08:51  INFO QAtester  CDN privitized in 0.172926187515 secs
 23:08:52  INFO QAtester  Deleted 1 container(s) in : 0.3735 secs
+
+
+
+================================
+SAMPLE FOR  OPENSTACK-SWIFT 
+================================
+* using python_cloudfiles-1.7.9.1
+
+./swift-tester.py -a http://auth.stg.swift.racklabs.com/auth/v1.0  -u ACCOUNT:USERNAME  -k PASSWORD -i 1
+
+17:48:29  INFO functester  ***** Began on: Fri Jun 10 17:48:29 2011 *****
+17:48:29  INFO functester
+17:48:29  INFO functester  ***** Starting Iteration # 1 *****
+17:48:29  INFO functester  Containers: 3, Usage: 213 bytes , Retrieval Time: 0.1004
+17:48:29  INFO functester  Listing all containers : 0.0186
+17:48:29  INFO functester  Listing all container's info : 0.0189
+17:48:30  INFO functester  Created 1 container(s) in : 0.0550 secs
+17:48:30  INFO functester  All 3 test file(s) already locally available
+17:48:47  INFO functester  Uploaded 3 file(s) in 1 container(s) in : 17.1418 secs
+17:48:47  INFO functester  Deleted 1 container(s) in : 0.0455 secs
+
+
 
