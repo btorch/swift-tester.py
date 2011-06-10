@@ -48,7 +48,7 @@ SAMPLE FOR  OPENSTACK-SWIFT
 ================================
 * using python_cloudfiles-1.7.9.1
 
-./swift-tester.py -a http://auth.stg.swift.racklabs.com/auth/v1.0  -u ACCOUNT:USERNAME  -k PASSWORD -i 1
+./swift-tester.py -a http://auth.myopenstack-swift.com/auth/v1.0  -u ACCOUNT:USERNAME  -k PASSWORD -i 1
 
 17:48:29  INFO functester  ***** Began on: Fri Jun 10 17:48:29 2011 *****
 17:48:29  INFO functester
