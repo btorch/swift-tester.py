@@ -86,7 +86,6 @@ def create_connection(url,user,apikey,logger):
 
 def container_operations (conn, logger, new_containers):
 
-
     # First perform some operations on existing data on account connection
     # before making any changes to the account
     try:
@@ -103,7 +102,7 @@ def container_operations (conn, logger, new_containers):
         start_time = time.time()
         containers_list = conn.list_containers()
         duration = time.time() - start_time
-        logger( " Listing all containers : %.4f " % duration )
+        logger( " Listing all containers : %.4f secs" % duration )
     except:
         raise Exception( 'Unable to list just containers' )
 
@@ -113,10 +112,9 @@ def container_operations (conn, logger, new_containers):
         start_time = time.time()
         all_containers_info = conn.list_containers_info()
         duration = time.time() - start_time
-        logger( " Listing all container\'s info : %.4f " % duration )
+        logger( " Listing all container\'s info : %.4f secs" % duration )
     except:
         raise Exception( 'Unable to get all conatiner\'s info'  )
-
 
 
 
@@ -131,20 +129,6 @@ def container_operations (conn, logger, new_containers):
             duration = 0.0
             logger(" Container creation - Exception Occurred : %s, %s " % (sys.exc_type, sys.exc_value) )
             sys.exit(1)
-
-#        try
-#            start_time = time.time()
-#            #logr = new_container_list[0].cdn_log_retention
-#            cdnttl = new_container_list[0].cdn_ttl
-#            duration = time.time() - start_time
-#            logger(" Retrieving %s container metadata in : %.4f secs" % (cdnttl,duration,) )
-#        except:
-#            duration = 0.0
-#            logger(" Retrieving Container metadata - Exception Occurred : %s, %s " % (sys.exc_type, sys.exc_value) )
-#            sys.exit(1)
-
-        
-
 
     return new_container_list
 
@@ -263,14 +247,21 @@ def  cdn_operations(conn, logger, new_containers, tmp_files):
     start_time = time.time()    
     #if not new_containers[0].is_public():
     new_containers[0].make_public()
+    cont_name = new_containers[0].name
+    cdn_uri = new_containers[0].public_uri()
+    cdn_suri = new_containers[0].public_ssl_uri()
 
     duration = time.time() - start_time
     logger(" Set " + str(new_containers[0]) + " public in %.4f secs " % duration )
 
-    cdn_uri = new_containers[0].public_uri()
+    logger("\t CDN : %s " % cont_name )
+    logger("\t CDN : %s " % cdn_uri )
+    logger("\t CDN-SSL : %s " % cdn_suri )
+
     time.sleep(2)
     for fname in tmp_files:
         cdn_url = cdn_uri + "/" + os.path.basename(fname)
+        #cdn_ssl_url = cdn_ssl_uri + "/" + os.path.basename(fname)
         try:
             start_time = time.time()
             urlsh = urllib2.urlopen(cdn_url)
@@ -281,6 +272,17 @@ def  cdn_operations(conn, logger, new_containers, tmp_files):
         except:
             logger(" CDN fetch exception : %s, %s " % (sys.exc_type, sys.exc_value) )
             sys.exit(1)
+
+#        try:
+#            start_time = time.time()
+#            urlsh = urllib2.urlopen(cdn_ssl_url)
+#            contents = urlsh.read() 
+#            urlsh.close()
+#            duration = time.time() - start_time
+#            logger("\t CDN ssl url fetched in %.4f secs ( %s )" % (duration,cdn_ssl_url) )
+#        except:
+#            logger(" CDN ssl fetch exception : %s, %s " % (sys.exc_type, sys.exc_value) )
+#            sys.exit(1)
         
         try:
             start_time = time.time()
@@ -289,7 +291,7 @@ def  cdn_operations(conn, logger, new_containers, tmp_files):
             cdnttl = new_containers[0].cdn_ttl
             new_containers[0].log_retention(False)
             duration = time.time() - start_time
-            logger("\t CDN container (%s,%s) metadata in : %.4f secs" % (cdnttl,logr,duration,) )
+            logger("\t CDN container (log retention = %s, cdnttl = %s) metadata in : %.4f secs" % (logr,cdnttl,duration,) )
         except:
             duration = 0.0
             logger(" Retrieving Container metadata - Exception Occurred : %s, %s " % (sys.exc_type, sys.exc_value) )
@@ -319,7 +321,8 @@ def  cdn_operations(conn, logger, new_containers, tmp_files):
         start_time = time.time()
         new_containers[0].make_private()
         duration = time.time() - start_time
-        logger(" CDN privitized in %s secs" % duration )
+        logger(" CDN privitized in %.4f secs" % duration )
+
 
 
 # Check the Openstack Swift URL 
@@ -454,7 +457,8 @@ def main():
 
     print("\n")
     my_logger(" ***** Began on: %s ***** " % localtime)
-    my_logger("")
+    my_logger(" ***** Python-Cloudfiles ver. %s " % cloudfiles.__version__ )
+    my_logger(" ")
 
     while (runs <= options.iterations):
 
