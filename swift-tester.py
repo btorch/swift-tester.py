@@ -247,21 +247,21 @@ def  cdn_operations(conn, logger, new_containers, tmp_files):
     start_time = time.time()    
     #if not new_containers[0].is_public():
     new_containers[0].make_public()
-    cont_name = new_containers[0].name
-    cdn_uri = new_containers[0].public_uri()
-    cdn_suri = new_containers[0].public_ssl_uri()
 
     duration = time.time() - start_time
     logger(" Set " + str(new_containers[0]) + " public in %.4f secs " % duration )
 
-    logger("\t CDN : %s " % cont_name )
-    logger("\t CDN : %s " % cdn_uri )
-    logger("\t CDN-SSL : %s " % cdn_suri )
+    cont_name = new_containers[0].name
+    cdn_uri = conn[cont_name].public_uri()
+    cdn_ssl_uri = conn[cont_name].public_ssl_uri()
+    #logger("\t CDN : %s " % cont_name )
+    #logger("\t CDN : %s " % cdn_uri )
+    #logger("\t CDN-SSL : %s " % cdn_ssl_uri )
 
     time.sleep(2)
     for fname in tmp_files:
         cdn_url = cdn_uri + "/" + os.path.basename(fname)
-        #cdn_ssl_url = cdn_ssl_uri + "/" + os.path.basename(fname)
+        cdn_ssl_url = cdn_ssl_uri + "/" + os.path.basename(fname)
         try:
             start_time = time.time()
             urlsh = urllib2.urlopen(cdn_url)
@@ -273,16 +273,16 @@ def  cdn_operations(conn, logger, new_containers, tmp_files):
             logger(" CDN fetch exception : %s, %s " % (sys.exc_type, sys.exc_value) )
             sys.exit(1)
 
-#        try:
-#            start_time = time.time()
-#            urlsh = urllib2.urlopen(cdn_ssl_url)
-#            contents = urlsh.read() 
-#            urlsh.close()
-#            duration = time.time() - start_time
-#            logger("\t CDN ssl url fetched in %.4f secs ( %s )" % (duration,cdn_ssl_url) )
-#        except:
-#            logger(" CDN ssl fetch exception : %s, %s " % (sys.exc_type, sys.exc_value) )
-#            sys.exit(1)
+        try:
+            start_time = time.time()
+            urlsh = urllib2.urlopen(cdn_ssl_url)
+            contents = urlsh.read() 
+            urlsh.close()
+            duration = time.time() - start_time
+            logger("\t CDN ssl url fetched in %.4f secs ( %s )" % (duration,cdn_ssl_url) )
+        except:
+            logger(" CDN ssl fetch exception : %s, %s " % (sys.exc_type, sys.exc_value) )
+            sys.exit(1)
         
         try:
             start_time = time.time()
@@ -457,7 +457,7 @@ def main():
 
     print("\n")
     my_logger(" ***** Began on: %s ***** " % localtime)
-    my_logger(" ***** Python-Cloudfiles ver. %s " % cloudfiles.__version__ )
+    my_logger(" ***** Python-Cloudfiles Ver. %s " % cloudfiles.__version__ )
     my_logger(" ")
 
     while (runs <= options.iterations):
