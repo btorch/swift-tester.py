@@ -71,7 +71,7 @@ def create_connection(url,user,apikey,logger):
         except:     
             count = 4
             duration = time.time() - start_time
-            msg = " Authentication Issues %s ( %.4f secs)" % (sys.exc_type,duration)
+            msg = " Authentication Issues: %s - %s  ( %.4f secs)" % (sys.exc_type,sys.exc_value,duration)
             raise Exception( WARNING + msg + ENDC )
             #logger( WARNING + msg + ENDC )
             sys.exit(1)
