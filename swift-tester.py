@@ -216,7 +216,7 @@ def create_test_files(logger, tmp_folder):
         os.mkdir(tmp_folder)
     
     for url in urls:
-        ofile = tmp_folder + '/' + os.path.basename(url)
+        ofile = tmp_folder + '/' + os.path.basename(url) + ".data" 
         if os.path.isfile(ofile) and os.path.exists(ofile):
             fullpath_files.append(ofile)
             download = False 
